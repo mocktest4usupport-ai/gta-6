@@ -581,7 +581,7 @@ function startMusic(){
      whole session, so instead stay in STANDBY and arm a retry that
      re-attempts playback on the next genuine gesture. */
   if(bgmAudio){
-    bgmAudio.loop=true; bgmAudio.volume=deathOn?0.05:(voiceActive?0.1:0.5);
+    bgmAudio.loop=true; bgmAudio.muted=false; bgmAudio.volume=deathOn?0.05:(voiceActive?0.1:0.5);
     var pr=bgmAudio.play();
     if(pr&&pr.then){
       pr.then(function(){ musicPlaying=true; setDuck(); syncMusicUI(); }).catch(function(err){
@@ -608,6 +608,7 @@ function armAudioRetry(){
   window.addEventListener('keydown',audioRetry);
 }
 function audioRetry(){
+  if(bgmAudio&&bgmAudio.muted&&!bgmRollingMuted) bgmAudio.muted=false;
   primeHoverSfx();
   if(soundOn&&musicOn&&!musicPlaying) startMusic();
   if(allPrimed()&&(!soundOn||!musicOn||musicPlaying)){
@@ -635,6 +636,7 @@ function stopMusic(){
 }
 if(bgmAudio){ bgmAudio.addEventListener('error',function(){ if(musicOn&&soundOn&&!musicPlaying) startSynthMusic(); }); }
 musicBtn.addEventListener('click',function(){
+  if(musicOn&&!soundOn){ setSound(true); syncMusicUI(); return; }
   musicOn=!musicOn;
   if(musicOn){ if(!soundOn) setSound(true); else startMusic(); } else stopMusic();
   syncMusicUI();
@@ -855,7 +857,7 @@ function tryAutoplay(){
     }).catch(function(){
       bgmAudio.muted=true;
       var pr2=bgmAudio.play();
-      if(pr2&&pr2.then) pr2.then(function(){ bgmRollingMuted=true; syncMusicUI(); }).catch(function(){});
+      if(pr2&&pr2.then) pr2.then(function(){ bgmRollingMuted=true; syncMusicUI(); }).catch(function(){ bgmAudio.muted=false; bgmRollingMuted=false; });
       armAudioRetry();
     });
   }
@@ -863,6 +865,7 @@ function tryAutoplay(){
 tryAutoplay();
 var firstGesture=function(e){
   if(e&&e.target&&e.target.closest&&e.target.closest('#soundBtn')) return;
+  if(bgmAudio&&bgmAudio.muted&&!bgmRollingMuted) bgmAudio.muted=false;
   if(!soundOn) setSound(true);
   else if(musicOn&&!musicPlaying) startMusic();
   primeHoverSfx();
